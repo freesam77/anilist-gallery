@@ -1,6 +1,20 @@
 # AniList Gallery
 
-Basic Next.js demo that fetches popular anime from the AniList GraphQL API using Apollo Client.
+AniList Gallery is a responsive Next.js (App Router + TypeScript) experience built for the AniList Challenge (v3.5). It uses Apollo Client to query the AniList GraphQL API and renders a card-based gallery with shadcn/ui-inspired components, Tailwind utility classes, and a blocking gate modal that captures a username and job title before any data is fetched.
+
+## Features
+
+- Guided entry flow - Landing page gate stores the visitor profile on the server via `/api/register`, sets an httpOnly `client_session` cookie, and locks the gallery until both fields are present.
+- AniList GraphQL - Apollo Client with a normalized cache keyed by `Media.id`, `cache-first` reads, and `notifyOnNetworkStatusChange` for smooth pagination.
+- Responsive cards - Tailwind grid utilities plus Radix Dialog compose a consistent card size and modal detail view across breakpoints.
+- URL addressable pagination - Page number lives in the query string (`/gallery?page=2`) so the view is shareable and survives reloads.
+- Optimized media - `next/image` is configured for AniList CDNs (`s4.anilist.co`, `img.anili.st`) for responsive, cached cover artwork.
+- Resilient UX - Inline error states surface network issues, and guarded navigation keeps visitors away from screens that depend on missing data.
+
+## Prerequisites
+
+- Node.js 18.18+ or 20.x (the project targets Next.js 16)
+- npm 9+ (or a compatible package manager such as pnpm, yarn, or bun)
 
 ## Getting Started
 
