@@ -1,6 +1,9 @@
 # AniList Gallery
+> Project is live at https://anilist-gallery.vercel.app/.
 
-AniList Gallery is a responsive Next.js (App Router + TypeScript) experience built for the AniList Challenge (v3.5). It uses Apollo Client to query the AniList GraphQL API and renders a card-based gallery with shadcn/ui-inspired components, Tailwind utility classes, and a blocking gate modal that captures a username and job title before any data is fetched.
+AniList Gallery is a responsive Next.js (App Router + TypeScript) experience built for the AniList Challenge (v3.5).
+
+It uses Apollo Client to query the AniList GraphQL API and renders a card-based gallery with shadcn/ui-inspired components, Tailwind utility classes, and a blocking gate form that captures a username and job title before any data is fetched.
 
 ## Features
 
@@ -11,10 +14,6 @@ AniList Gallery is a responsive Next.js (App Router + TypeScript) experience bui
 - Optimized media - `next/image` is configured for AniList CDNs (`s4.anilist.co`, `img.anili.st`) for responsive, cached cover artwork.
 - Resilient UX - Inline error states surface network issues, and guarded navigation keeps visitors away from screens that depend on missing data.
 
-## Prerequisites
-
-- Node.js 18.18+ or 20.x (the project targets Next.js 16)
-- npm 9+ (or a compatible package manager such as pnpm, yarn, or bun)
 
 ## Getting Started
 
@@ -34,11 +33,11 @@ npm run dev
 
 | Path | Description |
 | --- | --- |
-| `app/page.tsx` | Landing page with the gate modal. |
+| `app/page.tsx` | Landing page with the user form. |
 | `app/gallery/page.tsx` | Suspense-enabled gallery route with pagination. |
-| `components/MediaCard/*` | Card trigger, modal detail + preview views, and helpers. |
+| `components/MediaCard/*` | Card trigger, modal for detail + preview views, and helpers. |
 | `components/userContext.tsx` | React context that talks to `/api/session` for profile data. |
-| `components/ui/*` | shadcn/ui-inspired primitives (buttons, dialogs, etc.). |
+| `components/ui/*` | shadcn/ui primitives (buttons, dialogs, etc.). |
 | `lib/apollo-client.ts` | Apollo Client setup shared across the app. |
 
 ## Data Flow and Caching
