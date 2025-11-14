@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AniList Gallery
+
+Basic Next.js demo that fetches popular anime from the AniList GraphQL API using Apollo Client.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Available Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `npm run dev` - Start the Next.js dev server with Hot Module Replacement.
+- `npm run build` - Create an optimized production build.
+- `npm start` - Serve the production build.
+- `npm run lint` - Run ESLint with the Next.js configuration.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Layout
 
-## Learn More
+| Path | Description |
+| --- | --- |
+| `app/page.tsx` | Landing page with the gate modal. |
+| `app/gallery/page.tsx` | Suspense-enabled gallery route with pagination. |
+| `components/MediaCard/*` | Card trigger, modal detail + preview views, and helpers. |
+| `components/userContext.tsx` | React context that talks to `/api/session` for profile data. |
+| `components/ui/*` | shadcn/ui-inspired primitives (buttons, dialogs, etc.). |
+| `lib/apollo-client.ts` | Apollo Client setup shared across the app. |
 
-To learn more about Next.js, take a look at the following resources:
+## Data Flow and Caching
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. `app/gallery/page.tsx` reads the `page` query param and runs `MEDIA_PAGE_QUERY` with `useQuery`.
+2. The Apollo cache stores each `Media` node by `id`, so when the user paginates the client only re-fetches missing records.
+3. Back/forward navigation is instant because the page parameter mirrors the router state.
+4. The detail dialog receives the `MediaItem` object from the list and never needs to re-query.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Session Handling
 
-## Deploy on Vercel
+- `components/userContext.tsx` bootstraps by calling `/api/session`, which validates the `client_session` cookie against the in-memory `sessionStore`. The API returns `{ authenticated: false }` if the cookie is missing or expired.
+- Submitting the user form posts to `/api/register`, which generates a session id, stores the payload on the server, and writes the httpOnly cookie so the gallery route can trust the session without exposing it to client-side scripts.
+- Clearing the profile hits `DELETE /api/session`, which removes both the cookie and the stored session record. All navigation that depends on profile data waits for this context to resolve before rendering.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Rendering Strategy (and Why)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The shared layout (`app/layout.tsx`) renders as a Server Component for a quick first paint, but both the landing gate and gallery routes opt into `"use client"` so they can use browser-only APIs such as Navigation hooks, cookie-backed fetch calls, Radix dialogs, and Apollo's React hooks.
+- All AniList fetching happens on the client via Apollo's `useQuery`. Keeping data access in the browser means we do not expose API calls on the server, we can immediately hydrate from cached user info, and we avoid flashing SSR content for unauthenticated users who would be redirected to the gate anyway.
+- Suspense boundaries wrap the gallery route so loading skeletons remain isolated; pagination updates stay client-side for consistent state management and snappy transitions.
+
+## Error Handling
+
+- GraphQL or network failures show an inline alert so the user can retry without leaving the page.
+- Guarded navigation ensures routed pages never render until the user gate has persisted profile data; otherwise, visitors get redirected back to the landing screen with an explanatory message.
+
+
+The footer surfaces "Challenge v3.5" and provides a shortcut to edit your saved profile information at any time.
