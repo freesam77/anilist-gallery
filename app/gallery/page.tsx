@@ -1,9 +1,26 @@
 "use client";
 
-import { gql, useQuery } from "@apollo/client";
+import { Suspense, useEffect } from "react";
+import { gql } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useSearchParams, useRouter } from "next/navigation";
-import MediaCard from "../../components/media-card";
-import { useMemo } from "react";
+import MediaCard, { type MediaItem } from "../../components/MediaCard";
+import Pagination from "../../components/pagination";
+
+type PageInfo = {
+  total: number;
+  currentPage: number;
+  lastPage: number;
+  hasNextPage: boolean;
+  perPage: number;
+};
+
+type MediaPageData = {
+  Page: {
+    pageInfo: PageInfo;
+    media: MediaItem[];
+  };
+};
 
 const MEDIA_PAGE_QUERY = gql`
   query MediaPage($page: Int!, $perPage: Int!) {
@@ -13,6 +30,7 @@ const MEDIA_PAGE_QUERY = gql`
         currentPage
         lastPage
         hasNextPage
+        perPage
       }
       media(type: ANIME, sort: POPULARITY_DESC) {
         id
@@ -21,6 +39,15 @@ const MEDIA_PAGE_QUERY = gql`
           english
           native
         }
+        coverImage {
+          large
+          medium
+          color
+        }
+        format
+        genres
+        averageScore
+        episodes
         description(asHtml: true)
       }
     }
@@ -28,57 +55,69 @@ const MEDIA_PAGE_QUERY = gql`
 `;
 
 export default function GalleryPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-6xl px-4 py-10">
+          <div className="h-6 w-40 animate-pulse rounded bg-foreground/10" />
+        </main>
+      }
+    >
+      <GalleryPageContent />
+    </Suspense>
+  );
+}
+
+function GalleryPageContent() {
   const search = useSearchParams();
   const router = useRouter();
   const page = Math.max(1, Number(search.get("page") || 1));
   const perPage = 24;
 
-  const { data, loading, error } = useQuery(MEDIA_PAGE_QUERY, {
+  useEffect(() => {
+    if (!search.get("page")) router.replace(`?page=${page}`);
+  }, [page, router, search]);
+
+  const { data, loading, error } = useQuery<MediaPageData>(MEDIA_PAGE_QUERY, {
     variables: { page, perPage },
+    notifyOnNetworkStatusChange: true,
   });
 
-  const items = useMemo(() => data?.Page?.media ?? [], [data]);
-
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Popular Anime</h1>
-        <div className="flex gap-2 text-sm">
-          <button
-            className="rounded border px-3 py-1"
-            disabled={page <= 1}
-            onClick={() => router.push(`?page=${page - 1}`)}
-          >
-            Prev
-          </button>
-          <button
-            className="rounded border px-3 py-1"
-            disabled={!data?.Page?.pageInfo?.hasNextPage}
-            onClick={() => router.push(`?page=${page + 1}`)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
+    <main className="mx-auto w-full max-w-6xl px-4 py-6">
+      <h1 className="mb-4 text-2xl font-semibold">Popular Anime Gallery</h1>
 
-      {loading && <p>Loading…</p>}
-      {error && (
-        <p className="text-sm text-red-600">
-          Failed to load data. Please try again.
-        </p>
+      {loading && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {Array.from({ length: perPage }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-3/4 animate-pulse rounded-lg bg-foreground/10"
+            />
+          ))}
+        </div>
       )}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {items.map((media: any) => (
-          <MediaCard
-            key={media.id}
-            title={
-              media.title?.english || media.title?.romaji || media.title?.native
-            }
-            description={media.description}
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          Failed to load data. Please try again.
+        </div>
+      )}
+
+      {data?.Page?.media?.length ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {data.Page.media.map((m: MediaItem) => (
+              <MediaCard key={m.id} item={m} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={data.Page.pageInfo.currentPage}
+            lastPage={data.Page.pageInfo.lastPage}
+            basePath="/gallery"
           />
-        ))}
-      </section>
+        </>
+      ) : null}
     </main>
   );
 }
